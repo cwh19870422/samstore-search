@@ -31,10 +31,16 @@ jobs:
 
       - name: 有變動就存回專案
         run: |
+          if [ ! -f hot.json ]; then echo "這次沒有產生新的熱門搜尋"; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase --quiet
-          if [ -f hot.json ]; then git add hot.json; fi
+          # 先把新算好的 hot.json 收起來，同步成專案最新版本，再放回去存檔
+          # （避免剛好有別的更新也在存檔時互相衝突）
+          cp hot.json "$RUNNER_TEMP/hot.json"
+          git fetch --quiet origin main
+          git reset --hard --quiet origin/main
+          cp "$RUNNER_TEMP/hot.json" hot.json
+          git add hot.json
           if git diff --cached --quiet; then
             echo "沒有變動"
           else
