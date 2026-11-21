@@ -1,0 +1,43 @@
+name: 每週更新熱門搜尋
+
+on:
+  schedule:
+    - cron: '17 22 * * 0'   # UTC 週日 22:17 = 台北時間每週一早上 06:17（避開每天 03:17 的商品清單更新）
+  workflow_dispatch:         # 也可以在 Actions 頁面手動按「Run workflow」立刻更新
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-hot
+  cancel-in-progress: false
+
+jobs:
+  hot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 從 GA4 算出熱門搜尋
+        env:
+          GA4_KEY: ${{ secrets.GA4_KEY }}
+          GA4_PROPERTY: '386380328'
+        run: node scripts/hot.mjs
+
+      - name: 有變動就存回專案
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase --quiet
+          if [ -f hot.json ]; then git add hot.json; fi
+          if git diff --cached --quiet; then
+            echo "沒有變動"
+          else
+            git commit -m "更新熱門搜尋 $(date -u +%F)"
+            git push
+          fi
