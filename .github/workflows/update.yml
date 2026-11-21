@@ -24,6 +24,9 @@ jobs:
           node-version: 20
 
       - name: 抓官網最新商品
+        env:
+          SAM_RECHECK: '100000'    # 每天把全部商品都重新檢查一次（改名隔天就會更正）
+          SAM_MAX_MINUTES: '80'    # 全部檢查一次約 40～50 分鐘，最多跑 80 分鐘
         run: node scripts/update.mjs
 
       - name: 有變動就存回專案
