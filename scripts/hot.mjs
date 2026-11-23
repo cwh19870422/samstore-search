@@ -1,7 +1,7 @@
 // 山姆百貨 熱門搜尋關鍵字自動更新程式
 // ------------------------------------------------------------
-// 由 GitHub Actions 每週跑一次（見 .github/workflows/hot.yml），從
-// Google Analytics（山姆百貨 - GA4）讀取最近 30 天客人實際搜尋過的字，
+// 由 GitHub Actions 每天跑一次（見 .github/workflows/hot.yml），從
+// Google Analytics（山姆百貨 - GA4）讀取最近 14 天客人實際搜尋過的字，
 // 挑出最熱門的前幾名寫進 hot.json，官網搜尋框下面的「熱門搜尋」會讀它。
 //
 // 搜尋字從哪來：客人每次搜尋都會開 /search?q=關鍵字 這個網址，GA4 有
@@ -20,6 +20,7 @@ import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 
 const PROPERTY = process.env.GA4_PROPERTY || '386380328';
+const DAYS = Number(process.env.HOT_DAYS || 14);           // 看最近幾天的搜尋資料
 const TOP_N = Number(process.env.HOT_TOP_N || 8);
 const MIN_USERS = Number(process.env.HOT_MIN_USERS || 2);   // 至少幾個不同的人搜過才算
 const MIN_KEEP = Number(process.env.HOT_MIN_KEEP || 3);     // 上榜的字少於這個數就不覆蓋舊清單
@@ -67,7 +68,7 @@ async function fetchSearchPages(token) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({
-        dateRanges: [{ startDate: '30daysAgo', endDate: 'yesterday' }],
+        dateRanges: [{ startDate: DAYS + 'daysAgo', endDate: 'yesterday' }],
         dimensions: [{ name: 'pagePathPlusQueryString' }],
         metrics: [{ name: 'totalUsers' }, { name: 'screenPageViews' }],
         dimensionFilter: { filter: { fieldName: 'pagePathPlusQueryString', stringFilter: { matchType: 'BEGINS_WITH', value: '/search' } } },
@@ -156,8 +157,8 @@ async function main() {
 
   const top = ranked.slice(0, TOP_N);
   // 只印統計數字和上榜的字，不印其他客人打過的原始搜尋字
-  console.log(`GA4 最近 30 天：搜尋結果網址 ${searchPages} 種，合併後 ${groups.size} 個不同的字，符合條件 ${ranked.length} 個。`);
-  console.log('本週熱門搜尋：' + (top.length ? top.map((x) => `${x.label}（${x.users} 人）`).join('、') : '（無）'));
+  console.log(`GA4 最近 ${DAYS} 天：搜尋結果網址 ${searchPages} 種，合併後 ${groups.size} 個不同的字，符合條件 ${ranked.length} 個。`);
+  console.log('熱門搜尋：' + (top.length ? top.map((x) => `${x.label}（${x.users} 人）`).join('、') : '（無）'));
 
   if (top.length < MIN_KEEP) {
     console.log(`符合條件的字少於 ${MIN_KEEP} 個，這次不覆蓋，官網繼續顯示上一次的熱門搜尋。`);
