@@ -1,8 +1,8 @@
-name: 每週更新熱門搜尋
+name: 每日更新熱門搜尋
 
 on:
   schedule:
-    - cron: '17 22 * * 0'   # UTC 週日 22:17 = 台北時間每週一早上 06:17（避開每天 03:17 的商品清單更新）
+    - cron: '17 22 * * *'   # UTC 每天 22:17 = 台北時間每天早上 06:17（避開每天 03:17 的商品清單更新）
   workflow_dispatch:         # 也可以在 Actions 頁面手動按「Run workflow」立刻更新
 
 permissions:
